@@ -14,36 +14,16 @@ always @*
 begin
    case (immsel)
    I :begin
-    if (inst[31]==0) begin
-      imm={20'h0,inst[31:20]} ;   
-    end
-    if (inst[31]==1) begin
-     imm={20'hFFFFF,inst[31:20]} ; 
-    end
+     imm={{20{inst[31]}},inst[31:20]} ; 
       end 
    S :begin
-    if (inst[31]==0)begin
-      imm={20'h0,inst[31:25],inst[11:7]} ;
-                    end
-   if (inst[31]==1) begin
-     imm={20'hFFFFF,inst[31:25],inst[11:7]} ;
-                    end
+     imm={{20{inst[31]}},inst[31:25],inst[11:7]} ;
       end 
    B :begin
-    if (inst[31]==0)begin
-      imm={19'h0,inst[31],inst[7],inst[30:25],inst[11:8],1'h0} ;
-                    end
-   if (inst[31]==1) begin
-     imm={19'h7FFFF,inst[31],inst[7],inst[30:25],inst[11:8],1'h0} ;
-                    end
+     imm={{19{inst[31]}},inst[31],inst[7],inst[30:25],inst[11:8],1'h0} ;
       end 
    J : begin
-    if (inst[31]==0)begin
-      imm={11'h0,inst[31],inst[7],inst[30:25],inst[11:8],1'h0} ;
-                    end
-   if (inst[31]==1) begin
-     imm={11'h7FF,inst[31],inst[19:12],inst[20],inst[30:21],1'h0} ;
-                    end
+      imm={{12{inst[31]}},inst[7],inst[30:25],inst[11:8],1'h0} ;     
       end   
    default:imm=0;
    endcase   

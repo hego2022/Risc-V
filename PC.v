@@ -1,5 +1,6 @@
+`timescale 100ps/10ps
 module PC #(
-    parameter N=8
+    parameter[10:0] N=32
 ) (
     input clk,rst,
     input [N-1:0]pc_in,
@@ -9,6 +10,6 @@ module PC #(
         if (rst==1) 
         pc_out<=0;
         else
-        pc_out<=pc_in;
+        #0.1 pc_out<=pc_in;
     end
 endmodule

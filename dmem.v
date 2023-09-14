@@ -1,5 +1,5 @@
 `timescale 100ps/10ps
-module mem 
+module dmem 
    #(
     parameter N=32,
     M=10

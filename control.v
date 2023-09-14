@@ -1,31 +1,23 @@
 module cont #(
-    parameter N=32
+    parameter[10:0] N=32
 ) (
     input [N-1:0]inst,
     input clk,rst,B_eq,B_neq,
     output reg PCsel,RegWE,B_en,Bsel,Asel,MemWE,
     output reg[1:0]WBsel,
     output reg [2:0]immsel,ALUsel
+    
 );
 parameter [2:0] R=3'h0,
                 I=3'h1,   
                 S=3'h2,
                 B=3'h3,
                 J=3'h4;
-reg[N-1:0]inst_exc,inst_data,inst_wb;
-wire [2:0]s0,s1,s2;
+reg[N-1:0]inst_data;
+wire [2:0]s0;
 //know which mode you are operating in
-inst_moddecoder d0(inst_exc[6:2],s0);
-inst_moddecoder d1(inst_data[6:2],s1);
-inst_moddecoder d2(inst_wb[6:2],s2);
-/////insttucyion pipelining
-always @(posedge clk ) begin
-    inst_exc<=inst;
-    inst_data<=inst_exc;
-    inst_wb<=inst_data;
-end
-///
-always @(posedge clk ,posedge rst) begin: Execution
+inst_moddecoder d0(inst[6:2],s0);
+always @(*) begin: Execution
     if (rst==1) begin
       B_en=0;
       Bsel=0;
@@ -57,6 +49,7 @@ always @(posedge clk ,posedge rst) begin: Execution
       begin
         ALUsel=3'h3;  
       end    
+        PCsel=0;
     end
   if (s0==I) begin
       B_en=0; //data path signals
@@ -75,7 +68,11 @@ always @(posedge clk ,posedge rst) begin: Execution
        if (inst[14:12]==3'h6) //ori
       begin
         ALUsel=3'h3;  
-      end    
+      end  
+      if ( inst[6:2]==5'b11001) begin
+        PCsel=1;
+       end  
+       else PCsel=0;
     end  
 if (s0==S) 
   begin //SW
@@ -84,6 +81,8 @@ if (s0==S)
       Asel=0;
       immsel=S;
       ALUsel=3'h0;  
+        PCsel=0;
+      
   end
 if (s0==B) 
   begin //Beq -Bneq
@@ -92,24 +91,31 @@ if (s0==B)
       Asel=1;
       immsel=B;
       ALUsel=3'h0;  
-  end
+    if (B_eq==1| B_neq==1) begin
+      PCsel=1;
+    end
+    else begin PCsel=0;
+    end
+     end
+     
  if (s0==J) 
   begin //Jal
       B_en=0; //data path signals
       Bsel=1;
       Asel=1;
       immsel=J;
-      ALUsel=3'h0;  
+      ALUsel=3'h0; 
+      PCsel=1; 
   end 
- end
+  end
 end  :Execution 
 //data control block
-always @(posedge clk,posedge rst ) begin:data
+always @(*) begin:data
     if (rst==1) begin
         MemWE=0;
     end
-    else begin
-    if (s1==S) begin
+    else begin 
+    if (s0==S) begin
       MemWE=1;  
     end
     else begin
@@ -117,47 +123,45 @@ always @(posedge clk,posedge rst ) begin:data
     end
     end
 end
-always @(posedge clk,posedge rst ) begin:WB
+always @(*) begin:WB
 if (rst==1) begin
     PCsel=0;
-    WBsel=0;
+    WBsel=1;
     RegWE=0;
 end
 else begin
-    if (s2==R |s2==I) begin
-    PCsel=0;
+    if (s0==R) begin
+      RegWE=1;
+      WBsel=1;
+    end
+    if ( (s0==I)) begin
+    //PCsel=0;
     RegWE=1;
-    if (inst_wb[6:2]==5'b11001) begin
-     PCsel=1;
+    WBsel=1;
+    if (inst[6:2]==5'b11001) begin
+    // PCsel=1;
      WBsel=2;   
     end 
-    if (inst_wb[6:2]==5'b00000) begin
+    if (inst[6:2]==5'b00000) begin
      WBsel=0;   
     end 
     end
-    if (s2==S) begin
+    if (s0==S) begin
     PCsel=0;
     WBsel=0;
     RegWE=0;       
     end
-    if (s2==B) begin
+    if (s0==B) begin
     WBsel=0;
     RegWE=0;
-    if (inst_wb[14:12]==3'b000 &B_eq==1) begin //branching conditions
-        PCsel=1;
-    end  
-    if (inst_wb[14:12]==3'b001 & B_neq==1) begin
-        PCsel=1;
-    end  
-    else begin
-       PCsel=0;  
     end
     end
-    if (s2==J) begin
+    if (s0==J) begin
        RegWE=1;
-       PCsel=1;
+    // PCsel=0;
        WBsel=2;   
     end
-end
+    
 end:WB
+
 endmodule
